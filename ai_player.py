@@ -87,15 +87,6 @@ class AIPlayer:
                     target_pawn_id is None
                     or target_coords not in self.visited_positions[pawn_id]
                 ):
-                    print(
-                        {
-                            "state": "passed",
-                            "pawn_coords": state.pawns[pawn_id],
-                            "pawn_id": pawn_id,
-                            "target_coords": target_coords,
-                            "visited_positions": self.visited_positions[pawn_id],
-                        }
-                    )
                     possible_moves.append((pawn_id, target_coords[0], target_coords[1]))
         return possible_moves
 
@@ -113,11 +104,14 @@ class AIPlayer:
         # List of explored final states
         explored_states = []
 
+        # Debug (TODO: Remove)
+        coords = self.runtime.board.get_chip_coordinates(*self.runtime.current_target)
         print(
             "Target:",
-            self.runtime.current_target,
-            "at:",
-            self.runtime.board.get_chip_coordinates(*self.runtime.current_target),
+            GameWindow.get_color_name(target_pawn_id),
+            GameWindow.get_shape(self.runtime.current_target[1]),
+            "pawn",
+            f"(at x={coords[1]}, y={coords[0]})",
         )
         print(f"Starting search with {GameWindow.get_color_name(target_pawn_id)} pawn")
 
@@ -264,6 +258,10 @@ class AIPlayer:
 if __name__ == "__main__":
     runtime = GameRuntime()
     runtime.load_new_board()
-    runtime.new_target()
-    player = AIPlayer(runtime)
-    print("\n\nResult:\n", player.solve())
+    while True:
+        try:
+            runtime.new_target()
+        except Exception:  # No more targets available
+            break
+        player = AIPlayer(runtime)
+        print("Result:", player.solve(), "\n")

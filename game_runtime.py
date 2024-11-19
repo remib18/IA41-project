@@ -22,16 +22,6 @@ class GameRuntime:
         The new target has not been selected before.
         Shape of the target: (color, chip)
         Set to none if no target is available.
-        ""
-        random_color = random.randint(0, self.board.number_of_colors - 1)
-        random_chip = random.randint(0, self.board.number_of_chips - 1)
-
-        # Check if the target has been selected before
-        if (random_color, random_chip) in self.targets_history:
-            return self.new_target()
-
-        self.current_target = (random_color, random_chip)
-        self.targets_history.append(self.current_target)
         """
         # List of reachable targets without moving any other pawn
         reachable_targets = [
@@ -45,6 +35,19 @@ class GameRuntime:
             (3, 2),  # Yellow - Triangle
             (3, 3),  # Yellow - Star
         ]
+
+        # Remove targets that have been selected before
+        reachable_targets = [
+            target for target in reachable_targets if target not in self.targets_history
+        ]
+
+        # If no target is available, set the current target to None
+        if not reachable_targets:
+            self.current_target = None
+            raise Exception(
+                "No more targets available"
+            )  # TODO: remove when app flow is implemented
+            return
 
         # Random selected reachable target
         self.current_target = random.choice(reachable_targets)
