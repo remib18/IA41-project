@@ -97,17 +97,6 @@ class AIPlayer:
                         }
                     )
                     possible_moves.append((pawn_id, target_coords[0], target_coords[1]))
-                else:
-                    print(
-                        {
-                            "state": "not passed",
-                            "pawn_coords": state.pawns[pawn_id],
-                            "pawn_id": pawn_id,
-                            "target_coords": target_coords,
-                            "visited_positions": self.visited_positions[pawn_id],
-                        }
-                    )
-
         return possible_moves
 
     def solve(self) -> Optional[List[Tuple[int, int, int]]]:
@@ -213,6 +202,11 @@ class AIPlayer:
         directions = [(-1, 0), (0, 1), (1, 0), (0, -1)]
         dy, dx = directions[direction]
 
+        # Check if there's a wall in the current cell blocking movement in the current direction
+        if board.walls[y][x][direction]:
+            return y, x
+
+        # Move the pawn in the current direction until it hits a wall, another pawn or is reflected by a mirror
         while 0 <= y + dy < board.board_size and 0 <= x + dx < board.board_size:
             y, x = y + dy, x + dx
 

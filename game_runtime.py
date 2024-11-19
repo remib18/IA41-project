@@ -33,7 +33,21 @@ class GameRuntime:
         self.current_target = (random_color, random_chip)
         self.targets_history.append(self.current_target)
         """
-        self.current_target = (0, 1)
+        # List of reachable targets without moving any other pawn
+        reachable_targets = [
+            # (color, chip)
+            (1, 0),  # Green - Circle
+            (1, 2),  # Green - Triangle
+            (2, 2),  # Blue - Triangle
+            (2, 3),  # Blue - Star
+            (3, 0),  # Yellow - Circle
+            (3, 1),  # Yellow - Square
+            (3, 2),  # Yellow - Triangle
+            (3, 3),  # Yellow - Star
+        ]
+
+        # Random selected reachable target
+        self.current_target = random.choice(reachable_targets)
         self.targets_history.append(self.current_target)
 
     def load_new_board(self) -> None:
