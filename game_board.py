@@ -19,9 +19,11 @@ class GameBoard:
             board_size != 16
             or number_of_colors != 4
             or number_of_chips != 4
-            or number_of_mirrors != 2
+            or (number_of_mirrors != 2 and number_of_mirrors != 0)
         ):
-            raise ValueError("Only the default values are currently supported.")
+            raise ValueError(
+                "Only the default values are currently supported. You can only disable or enable mirrors."
+            )
 
         self.board_size = board_size
         self.number_of_colors = number_of_colors
@@ -239,6 +241,12 @@ class GameBoard:
         :param number_of_mirrors: The number of mirrors per color to place on the board
         :return: a board grid with the mirrors (colors, angle) from a cell perspective
         """
+        if self.number_of_mirrors == 0:
+            return [
+                [(None, None) for _ in range(self.board_size)]
+                for _ in range(self.board_size)
+            ]
+
         # Generate a pre-defined board mirrors declaration => TODO: Generate random mirrors
         mirrors = [
             [(2, 14, 45), (11, 8, 135)],  # Red
