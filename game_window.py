@@ -17,7 +17,6 @@ from game_runtime import GameRuntime
 
 
 class GameWindow(QMainWindow):
-
     def __init__(self):
         super().__init__()
 
@@ -155,14 +154,14 @@ class GameWindow(QMainWindow):
                         )
 
         # Draw pawns
-        for idx, (row, col) in enumerate(self.runtime.pawns):
-            x_center = col * self.cell_size + self.cell_size / 2
-            y_center = row * self.cell_size + self.cell_size / 2
+        for idx, coord in enumerate(self.runtime.pawns):
+            x_center = coord.x * self.cell_size + self.cell_size / 2
+            y_center = coord.y * self.cell_size + self.cell_size / 2
             self.draw_pawn(x_center, y_center, idx)
 
             # Check if the pawn is over a chip and make the chip transparent
             for (chip_row, chip_col), chip_item in self.chip_items:
-                if chip_row == row and chip_col == col:
+                if chip_row == coord.y and chip_col == coord.x:
                     chip_item.setOpacity(0.8)  # Set chip to 80% transparent
 
     def draw_pawn(self, x_center, y_center, color_code):
@@ -172,7 +171,7 @@ class GameWindow(QMainWindow):
         base_radius = self.cell_size / 4
         head_radius = base_radius / 1.5
 
-        # Draw base (rectangle base for pawn)
+        # Draw base (ellipse base for pawn)
         pawn_path.addEllipse(
             x_center - base_radius,
             y_center - base_radius,

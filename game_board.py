@@ -1,8 +1,9 @@
 from typing import List, Tuple, Union
 
+from types import Coordinate
+
 
 class GameBoard:
-
     def __init__(
         self,
         board_size: int = 16,
@@ -29,9 +30,9 @@ class GameBoard:
         self.number_of_colors = number_of_colors
         self.number_of_chips = number_of_chips
         self.number_of_mirrors = number_of_mirrors
-        self.walls = []
-        self.chips = []
-        self.mirrors = []
+        self.walls: List[List[Tuple[bool, bool, bool, bool]]] = []
+        self.chips: List[List[Tuple[Union[int, None], Union[int, None]]]] = []
+        self.mirrors: List[List[Tuple[Union[int, None], Union[int, None]]]] = []
 
         # Generate the walls, chips and mirrors for the board
         self.walls = self.generate_walls()
@@ -39,25 +40,23 @@ class GameBoard:
         self.mirrors = self.generate_mirrors()
         self.initial_pawns_position = self.set_initial_pawns_position()
 
-    def get_chip_coordinates(self, color: int, chip: int) -> Tuple[int, int]:
+    def get_chip_coordinates(self, color: int, chip: int) -> Coordinate:
         """
         Get the coordinates of a chip on the board.
         :param color: The color of the chip.
         :param chip: The chip number.
         :return: The coordinates of the chip. (y, x)
         """
-        for i, row in enumerate(self.chips):
-            for j, (c, ch) in enumerate(row):
+        for y, row in enumerate(self.chips):
+            for x, (c, ch) in enumerate(row):
                 if c == color and ch == chip:
-                    return i, j
+                    return Coordinate(x=x, y=y)
         raise ValueError(f"Chip {chip} of color {color} not found on the board.")
 
     def generate_walls(self) -> List[List[Tuple[bool, bool, bool, bool]]]:
         """
         Generate the walls for a board based on the given parameters.
 
-        :param board_size: The size of the board (is a square of `board_size`x`board_size`).
-        :param walls_density: The density of walls on the board
         :return: a board grid with the walls from a cell perspective (north, east, south, west)
         """
 
@@ -81,42 +80,46 @@ class GameBoard:
                     # Add a north wall
                     board[i][j] = (True, board[i][j][1], board[i][j][2], board[i][j][3])
                     # Add a south wall to the above cell
-                    board[i - 1][j] = (
-                        board[i - 1][j][0],
-                        board[i - 1][j][1],
-                        True,
-                        board[i - 1][j][3],
-                    )
+                    if i - 1 >= 0:
+                        board[i - 1][j] = (
+                            board[i - 1][j][0],
+                            board[i - 1][j][1],
+                            True,
+                            board[i - 1][j][3],
+                        )
                 if i == center_end:
                     # Add a south wall
                     board[i][j] = (board[i][j][0], board[i][j][1], True, board[i][j][3])
                     # Add a north wall to the below cell
-                    board[i + 1][j] = (
-                        True,
-                        board[i + 1][j][1],
-                        board[i + 1][j][2],
-                        board[i + 1][j][3],
-                    )
+                    if i + 1 < self.board_size:
+                        board[i + 1][j] = (
+                            True,
+                            board[i + 1][j][1],
+                            board[i + 1][j][2],
+                            board[i + 1][j][3],
+                        )
                 if j == center_start:
                     # Add a west wall
                     board[i][j] = (board[i][j][0], board[i][j][1], board[i][j][2], True)
                     # Add an east wall to the left cell
-                    board[i][j - 1] = (
-                        board[i][j - 1][0],
-                        True,
-                        board[i][j - 1][2],
-                        board[i][j - 1][3],
-                    )
+                    if j - 1 >= 0:
+                        board[i][j - 1] = (
+                            board[i][j - 1][0],
+                            True,
+                            board[i][j - 1][2],
+                            board[i][j - 1][3],
+                        )
                 if j == center_end:
                     # Add an east wall
                     board[i][j] = (board[i][j][0], True, board[i][j][2], board[i][j][3])
                     # Add a west wall to the right cell
-                    board[i][j + 1] = (
-                        board[i][j + 1][0],
-                        board[i][j + 1][1],
-                        board[i][j + 1][2],
-                        True,
-                    )
+                    if j + 1 < self.board_size:
+                        board[i][j + 1] = (
+                            board[i][j + 1][0],
+                            board[i][j + 1][1],
+                            board[i][j + 1][2],
+                            True,
+                        )
 
         # Walls around the board
         for i in range(self.board_size):
@@ -188,7 +191,6 @@ class GameBoard:
                     board[i + 1][j][2],
                     board[i + 1][j][3],
                 )
-            pass
         for i, j in vertical:
             board[i][j] = (board[i][j][0], True, board[i][j][2], board[i][j][3])
             if j < self.board_size - 1:
@@ -198,7 +200,6 @@ class GameBoard:
                     board[i][j + 1][2],
                     True,
                 )
-            pass
 
         return board
 
@@ -206,13 +207,10 @@ class GameBoard:
         """
         Generate the chips for a board based on the given parameters.
 
-        :param board_size: The size of the board (is a square of `board_size`x`board_size`).
-        :param number_of_colors: The number of colors to use for the chips
-        :param number_of_chips: The number of chips per color to place on the board
         :return: a board grid with the chips from a cell perspective (color, chip)
         """
         # Generate a pre-defined board chips declaration => TODO: Generate random chips
-        chips = [
+        chips_positions = [
             [(1, 10), (4, 3), (10, 14), (14, 3)],  # Red
             [(3, 12), (4, 2), (13, 6), (13, 10)],  # Green
             [(2, 6), (2, 12), (8, 11), (12, 6)],  # Blue
@@ -224,9 +222,9 @@ class GameBoard:
             [(None, None) for _ in range(self.board_size)]
             for _ in range(self.board_size)
         ]
-        for color, chips_of_color in enumerate(chips):
-            for chip, (i, j) in enumerate(chips_of_color):
-                board[i][j] = (color, chip)
+        for color, chips_of_color in enumerate(chips_positions):
+            for chip, (y, x) in enumerate(chips_of_color):
+                board[y][x] = (color, chip)
 
         return board
 
@@ -236,9 +234,6 @@ class GameBoard:
 
         Note: forwards mirrors angle is 135°, backwards mirrors angle is 45°
 
-        :param board_size: The size of the board (is a square of `board_size`x`board_size`).
-        :param number_of_colors: The number of colors to use for the mirrors
-        :param number_of_mirrors: The number of mirrors per color to place on the board
         :return: a board grid with the mirrors (colors, angle) from a cell perspective
         """
         if self.number_of_mirrors == 0:
@@ -248,7 +243,7 @@ class GameBoard:
             ]
 
         # Generate a pre-defined board mirrors declaration => TODO: Generate random mirrors
-        mirrors = [
+        mirrors_positions = [
             [(2, 14, 45), (11, 8, 135)],  # Red
             [(3, 9, 45), (11, 1, 135)],  # Green
             [(1, 4, 135), (14, 13, 45)],  # Blue
@@ -260,22 +255,26 @@ class GameBoard:
             [(None, None) for _ in range(self.board_size)]
             for _ in range(self.board_size)
         ]
-        for color, mirrors_of_color in enumerate(mirrors):
-            for _chip, (i, j, angle) in enumerate(mirrors_of_color):
-                board[i][j] = (color, angle)
+        for color, mirrors_of_color in enumerate(mirrors_positions):
+            for _chip, (y, x, angle) in enumerate(mirrors_of_color):
+                board[y][x] = (color, angle)
 
         return board
 
-    def set_initial_pawns_position(self) -> List[Tuple[int, int]]:
+    def set_initial_pawns_position(self) -> List[Coordinate]:
         """
         Set the initial position of the pawns on the board.
 
-        :return: a list of tuples with the initial position of the pawns
+        :return: a list of Coordinate with the initial position of the pawns
         """
         # Generate a pre-defined board pawns declaration => TODO: Generate random pawns
-        pawns = [(5, 1), (10, 12), (12, 1), (4, 14)]  # Red  # Green  # Blue  # Yellow
-
-        return pawns
+        pawns_positions = [
+            (5, 1),  # Red
+            (10, 12),  # Green
+            (12, 1),  # Blue
+            (4, 14),  # Yellow
+        ]
+        return [Coordinate(x=x, y=y) for y, x in pawns_positions]
 
     def get_seed(self) -> str:
         """
@@ -314,7 +313,9 @@ class GameBoard:
                 if color is not None
             ]
         )
-        hex_pawns = ";".join([f"{x},{y}" for x, y in self.initial_pawns_position])
+        hex_pawns = ";".join(
+            [f"{coord.y},{coord.x}" for coord in self.initial_pawns_position]
+        )
 
         # Combine all into a single string with separators
         seed_string = f"{hex_board_size}-{hex_number_of_colors}-{hex_number_of_chips}-{hex_number_of_mirrors}|{hex_walls}|{hex_chips}|{hex_mirrors}|{hex_pawns}"
@@ -363,8 +364,8 @@ class GameBoard:
         initial_pawns_position = []
         for pawn_entry in parts[4].split(";"):
             if pawn_entry:
-                x, y = map(int, pawn_entry.split(","))
-                initial_pawns_position.append((x, y))
+                y, x = map(int, pawn_entry.split(","))
+                initial_pawns_position.append(Coordinate(x=x, y=y))
 
         return GameBoard(
             board_size=board_size,

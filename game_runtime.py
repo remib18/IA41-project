@@ -1,7 +1,7 @@
 import random
 from typing import List, Tuple, Optional
 
-from game_board import GameBoard
+from game_board import GameBoard, Coordinate
 
 
 class GameRuntime:
@@ -11,7 +11,7 @@ class GameRuntime:
 
     def __init__(self):
         self.board: Optional["GameBoard"] = None
-        self.pawns: List[Tuple[int, int]] = []
+        self.pawns: List[Coordinate] = []
         self.current_target: Optional[Tuple[int, int]] = None
         self.targets_history: List[Tuple[int, int]] = []
         self.boards_history: List[str] = []
@@ -47,7 +47,6 @@ class GameRuntime:
             raise Exception(
                 "No more targets available"
             )  # TODO: remove when app flow is implemented
-            return
 
         # Random selected reachable target
         self.current_target = random.choice(reachable_targets)

@@ -1,14 +1,15 @@
-from typing import List, Tuple, Optional
-from game_runtime import GameRuntime
+from typing import List, Optional, Tuple
 from dataclasses import dataclass
 from collections import deque
 
+from game_runtime import GameRuntime
 from game_window import GameWindow
+from types import Coordinate, Direction
 
 
 @dataclass(frozen=True)
 class ResolutionState:
-    pawns: List[Tuple[int, int]]
+    pawns: List[Coordinate]
     cost: int
     previous_state: Optional["ResolutionState"] = None
 
@@ -28,7 +29,7 @@ class ResolutionState:
                 zip(current.pawns, current.previous_state.pawns)
             ):
                 if curr_pos != prev_pos:
-                    moves.append((pawn_id, curr_pos[0], curr_pos[1]))
+                    moves.append((pawn_id, curr_pos.y, curr_pos.x))
                     break
             current = current.previous_state
         return list(reversed(moves))
@@ -51,7 +52,7 @@ class ResolutionState:
         else:
             string += f"Move pawn {GameWindow.get_color_name(pawn_moved)} with a cost of {self.cost}:\n"
         string += "\n".join(
-            f"  Pawn {i}: {pos}" + (" <-" if i == pawn_moved else "")
+            f"  Pawn {i}: ({pos.y}, {pos.x})" + (" <-" if i == pawn_moved else "")
             for i, pos in enumerate(self.pawns)
         )
 
@@ -79,7 +80,7 @@ class AIPlayer:
         )
 
         for pawn_id in pawn_ids:
-            for direction in range(4):
+            for direction in Direction:
                 target_coords = self._get_pawn_destination(state, pawn_id, direction)
 
                 # Cond: target_coords != None AND (target_pawn_id != None => target_coords not in visited_positions[pawn_id])
@@ -87,7 +88,7 @@ class AIPlayer:
                     target_pawn_id is None
                     or target_coords not in self.visited_positions[pawn_id]
                 ):
-                    possible_moves.append((pawn_id, target_coords[0], target_coords[1]))
+                    possible_moves.append((pawn_id, target_coords.y, target_coords.x))
         return possible_moves
 
     def solve(self) -> Optional[List[Tuple[int, int, int]]]:
@@ -96,7 +97,7 @@ class AIPlayer:
         :return: A list of moves in the format to reach the target. None if no solution is found. (pawn_id, target_y, target_x)
         """
         # Initialize queue and graph structure
-        queue = deque([ResolutionState(pawns=runtime.pawns, cost=0)])
+        queue = deque([ResolutionState(pawns=self.runtime.pawns, cost=0)])
         # Get the target pawn id
         target_pawn_id = self.runtime.current_target[0]
         # Whether we are using the target pawn or not
@@ -111,7 +112,7 @@ class AIPlayer:
             GameWindow.get_color_name(target_pawn_id),
             GameWindow.get_shape(self.runtime.current_target[1]),
             "pawn",
-            f"(at x={coords[1]}, y={coords[0]})",
+            f"(at x={coords.x}, y={coords.y})",
         )
         print(f"Starting search with {GameWindow.get_color_name(target_pawn_id)} pawn")
 
@@ -134,10 +135,12 @@ class AIPlayer:
 
                 # Create new pawn positions list
                 new_pawns = list(current_state.pawns)
-                new_pawns[pawn_id] = (target_y, target_x)
+                new_pawns[pawn_id] = Coordinate(x=target_x, y=target_y)
 
                 # Track this position as visited for this pawn
-                self.visited_positions[pawn_id].append((target_y, target_x))
+                self.visited_positions[pawn_id].append(
+                    Coordinate(x=target_x, y=target_y)
+                )
 
                 new_state = ResolutionState(
                     pawns=new_pawns,
@@ -150,20 +153,12 @@ class AIPlayer:
             if not has_valid_moves:
                 explored_states.append(current_state)
 
-            # If we've tried all possible moves with the target pawn and no solution was found, try with all pawns
-            """if len(queue) == 0 and using_target_pawn:
-                print(
-                    "No solution found with target pawn, trying with all other pawns..."
-                )
-                using_target_pawn = False
-                queue = deque([self.state])"""
-
         print("Explored states:")
         for state in explored_states:
             print(state.get_move_sequence())
         return None
 
-    def _is_solution(self, pawns: List[Tuple[int, int]]) -> bool:
+    def _is_solution(self, pawns: List[Coordinate]) -> bool:
         """
         Check if the target pawn has reached the target position.
         """
@@ -175,16 +170,16 @@ class AIPlayer:
         self,
         state: ResolutionState,
         pawn_id: int,
-        direction: int,
-        from_coords: Optional[Tuple[int, int]] = None,
-    ) -> Optional[Tuple[int, int]]:
+        direction: Direction,
+        from_coords: Optional[Coordinate] = None,
+    ) -> Optional[Coordinate]:
         """
         Get the destination coordinates for a pawn based on its direction.
         :param state: The current state of the game.
         :param pawn_id: The id of the pawn.
-        :param direction: The direction of the move (0: up, 1: right, 2: down, 3: left).
-        :param from_coords: A tuple to override the current position of the pawn used for mirror moves.
-        :return: Target coordinates as a tuple (target_y, target_x) or None if move is invalid.
+        :param direction: The direction of the move (Direction enum).
+        :param from_coords: A Coordinate to override the current position of the pawn used for mirror moves.
+        :return: Target coordinates as a Coordinate or None if move is invalid.
         """
         pawn = state.pawns[pawn_id]
         board = self.runtime.board
@@ -192,37 +187,48 @@ class AIPlayer:
         if not pawn or not board:
             return None
 
-        y, x = from_coords if from_coords else pawn
-        directions = [(-1, 0), (0, 1), (1, 0), (0, -1)]
-        dy, dx = directions[direction]
+        current_coord = from_coords if from_coords else pawn
+        y, x = current_coord.y, current_coord.x
+
+        direction_deltas = {
+            Direction.UP: (-1, 0),
+            Direction.RIGHT: (0, 1),
+            Direction.DOWN: (1, 0),
+            Direction.LEFT: (0, -1),
+        }
+        dy, dx = direction_deltas[direction]
 
         # Check if there's a wall in the current cell blocking movement in the current direction
-        if board.walls[y][x][direction]:
-            return y, x
+        if board.walls[y][x][direction.value]:
+            return Coordinate(x=x, y=y)
 
         # Move the pawn in the current direction until it hits a wall, another pawn or is reflected by a mirror
         while 0 <= y + dy < board.board_size and 0 <= x + dx < board.board_size:
-            y, x = y + dy, x + dx
+            y += dy
+            x += dx
 
             # Check if the pawn is reflected by a mirror
-            if (mirror := board.mirrors[y][x])[0] is not None:
+            mirror = board.mirrors[y][x]
+            if mirror[0] is not None:
                 if pawn_id != mirror[0]:
                     continue
                 new_direction = self._get_reflected_direction(direction, mirror[1])
-                return self._get_pawn_destination(state, pawn_id, new_direction, (y, x))
+                return self._get_pawn_destination(
+                    state, pawn_id, new_direction, Coordinate(x=x, y=y)
+                )
 
             # Check if the pawn is blocked by a wall
-            if board.walls[y][x][direction]:
-                return y, x
+            if board.walls[y][x][direction.value]:
+                return Coordinate(x=x, y=y)
 
             # Check if the pawn is blocked by another pawn
-            if self._is_pawn_at(state, (y, x)):
-                return y - dy, x - dx
+            if self._is_pawn_at(state, Coordinate(x=x, y=y)):
+                return Coordinate(x=x - dx, y=y - dy)
 
-        return y, x
+        return Coordinate(x=x, y=y)
 
     @staticmethod
-    def _is_pawn_at(state: ResolutionState, target_coords: Tuple[int, int]) -> bool:
+    def _is_pawn_at(state: ResolutionState, target_coords: Coordinate) -> bool:
         """
         Check if another pawn is at the target coordinates.
         :param target_coords: Coordinates to check.
@@ -231,22 +237,22 @@ class AIPlayer:
         return any(p == target_coords for p in state.pawns if p is not None)
 
     @staticmethod
-    def _get_reflected_direction(direction: int, mirror_angle: int) -> int:
+    def _get_reflected_direction(direction: Direction, mirror_angle: int) -> Direction:
         """
         Get the new direction based on the mirror's angle.
         :param direction: Current direction of the pawn.
-        :param mirror_angle: Angle of the mirror (45, 135).
+        :param mirror_angle: Angle of the mirror 45 (\) or 135 (/).
         :return: New direction after reflection.
         """
         reflection_map = {
-            (0, 45): 3,
-            (0, 135): 1,
-            (1, 135): 0,
-            (1, 45): 2,
-            (2, 45): 1,
-            (2, 135): 3,
-            (3, 45): 0,
-            (3, 135): 2,
+            (Direction.UP, 45): Direction.LEFT,
+            (Direction.UP, 135): Direction.RIGHT,
+            (Direction.RIGHT, 135): Direction.UP,
+            (Direction.RIGHT, 45): Direction.DOWN,
+            (Direction.DOWN, 45): Direction.RIGHT,
+            (Direction.DOWN, 135): Direction.LEFT,
+            (Direction.LEFT, 45): Direction.UP,
+            (Direction.LEFT, 135): Direction.DOWN,
         }
         if (direction, mirror_angle) not in reflection_map:
             raise ValueError(
