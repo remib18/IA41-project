@@ -17,7 +17,7 @@ class ResolutionState:
     def get_move_sequence(self) -> List[Tuple[int, int, int]]:
         """
         Reconstruct the sequence of moves from the state chain.
-        :return: A list of moves in the format (pawn_id, target_y, target_x).
+        :return: A list of moves in the format (pawn_id, target_x, target_y).
         """
         moves = []
         current = self
@@ -27,7 +27,7 @@ class ResolutionState:
                 zip(current.pawns, current.previous_state.pawns)
             ):
                 if curr_pos != prev_pos:
-                    moves.append((pawn_id, curr_pos.y, curr_pos.x))
+                    moves.append((pawn_id, curr_pos.x, curr_pos.y))
                     break
             current = current.previous_state
         return list(reversed(moves))
@@ -52,7 +52,7 @@ class ResolutionState:
                 f"Move pawn {get_color_name(pawn_moved)} with a cost of {self.cost}:\n"
             )
         string += "\n".join(
-            f"  Pawn {i}: ({pos.y}, {pos.x})" + (" <-" if i == pawn_moved else "")
+            f"  Pawn {i}: ({pos.x}, {pos.y})" + (" <-" if i == pawn_moved else "")
             for i, pos in enumerate(self.pawns)
         )
 
@@ -78,7 +78,7 @@ class AIPlayer:
         Compute all possible moves for the current state.
         :param state: The current state.
         :param target_pawn_id: If provided, only compute moves for this specific pawn.
-        :return: A list of all possible moves in the format (pawn_id, target_y, target_x).
+        :return: A list of all possible moves in the format (pawn_id, target_x, target_y).
         """
         possible_moves = []
         pawn_ids = (
@@ -94,13 +94,13 @@ class AIPlayer:
                     target_pawn_id is None
                     or target_coords not in self.visited_positions[pawn_id]
                 ):
-                    possible_moves.append((pawn_id, target_coords.y, target_coords.x))
+                    possible_moves.append((pawn_id, target_coords.x, target_coords.y))
         return possible_moves
 
     def solve(self) -> Optional[List[Tuple[int, int, int]]]:
         """
         Find a solution using a basic breadth-first search.
-        :return: A list of moves in the format to reach the target. None if no solution is found. (pawn_id, target_y, target_x)
+        :return: A list of moves in the format to reach the target. None if no solution is found. (pawn_id, target_x, target_y)
         """
         # Initialize queue and graph structure
         queue = deque([ResolutionState(pawns=self.state.pawns, cost=0)])
@@ -139,7 +139,7 @@ class AIPlayer:
             has_valid_moves = False
 
             # Try all possible moves
-            for pawn_id, target_y, target_x in moves:
+            for pawn_id, target_x, target_y in moves:
                 has_valid_moves = True
 
                 # Create new pawn positions list
@@ -195,29 +195,29 @@ class AIPlayer:
             return None
 
         current_coord = from_coords if from_coords else pawn
-        y, x = current_coord.y, current_coord.x
+        x, y = current_coord.x, current_coord.y
 
         direction_deltas = {
-            Direction.UP: (-1, 0),
-            Direction.RIGHT: (0, 1),
-            Direction.DOWN: (1, 0),
-            Direction.LEFT: (0, -1),
+            Direction.UP: (0, -1),
+            Direction.RIGHT: (1, 0),
+            Direction.DOWN: (0, 1),
+            Direction.LEFT: (-1, 0),
         }
-        dy, dx = direction_deltas[direction]
+        dx, dy = direction_deltas[direction]
 
         # Check if there's a wall in the current cell blocking movement in the current direction
-        if self.state.walls[y][x][direction.value]:
+        if self.state.walls[x][y][direction.value]:
             return Coordinate(x=x, y=y)
 
         # Move the pawn in the current direction until it hits a wall, another pawn or is reflected by a mirror
         while (
-            0 <= y + dy < self.state.board_size and 0 <= x + dx < self.state.board_size
+            0 <= x + dx < self.state.board_size and 0 <= y + dy < self.state.board_size
         ):
-            y += dy
             x += dx
+            y += dy
 
             # Check if the pawn is reflected by a mirror
-            mirror = self.state.mirrors[y][x]
+            mirror = self.state.mirrors[x][y]
             if mirror[0] is not None:
                 if pawn_id != mirror[0]:
                     continue
@@ -227,7 +227,7 @@ class AIPlayer:
                 )
 
             # Check if the pawn is blocked by a wall
-            if self.state.walls[y][x][direction.value]:
+            if self.state.walls[x][y][direction.value]:
                 return Coordinate(x=x, y=y)
 
             # Check if the pawn is blocked by another pawn
@@ -274,10 +274,10 @@ class AIPlayer:
         Get the coordinates of a chip on the board.
         :param color: The color of the chip.
         :param chip: The chip number.
-        :return: The coordinates of the chip. (y, x)
+        :return: The coordinates of the chip. (x, y)
         """
-        for y, row in enumerate(self.state.chips):
-            for x, (c, ch) in enumerate(row):
+        for x, col in enumerate(self.state.chips):
+            for y, (c, ch) in enumerate(col):
                 if c == color and ch == chip:
                     return Coordinate(x=x, y=y)
         raise ValueError(f"Chip {chip} of color {color} not found on the board.")
@@ -298,12 +298,23 @@ if __name__ == "__main__":
     runtime.load_new_board()
     runtime.new_target()
 
+    # Since GameBoard use grids with [y][x] indexing,
+    # we need to adapt them by transposing the grids for [x][y] indexing.
+
+    # Transpose the grids in GameState to use x, y indexing
+    def transpose_grid(grid):
+        return [list(col) for col in zip(*grid)]
+
+    walls = transpose_grid(runtime.board.walls)
+    mirrors = transpose_grid(runtime.board.mirrors)
+    chips = transpose_grid(runtime.board.chips)
+
     # Extract data from GameRuntime to create GameState
     game_state = GameState(
         board_size=runtime.board.board_size,
-        walls=runtime.board.walls,
-        mirrors=runtime.board.mirrors,
-        chips=runtime.board.chips,
+        walls=walls,
+        mirrors=mirrors,
+        chips=chips,
         pawns=runtime.pawns,
         current_target=runtime.current_target,
     )
