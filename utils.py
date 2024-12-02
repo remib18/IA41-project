@@ -1,3 +1,4 @@
+from typing import List, Tuple, Optional
 from dataclasses import dataclass
 from enum import Enum
 
@@ -15,6 +16,16 @@ class Coordinate:
 
     def __str__(self):
         return f"({self.x}, {self.y})"
+
+
+@dataclass
+class GameState:
+    board_size: int
+    walls: List[List[Tuple[bool, bool, bool, bool]]]
+    mirrors: List[List[Tuple[Optional[int], Optional[int]]]]
+    chips: List[List[Tuple[Optional[int], Optional[int]]]]
+    pawns: List[Coordinate]
+    current_target: Tuple[int, int]
 
 
 class Direction(Enum):

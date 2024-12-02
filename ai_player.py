@@ -2,9 +2,7 @@ from typing import List, Optional, Tuple
 from dataclasses import dataclass
 from collections import deque
 
-from game_runtime import GameRuntime
-from game_window import GameWindow
-from utils import Coordinate, Direction
+from utils import Coordinate, Direction, GameState
 
 
 @dataclass(frozen=True)
@@ -50,7 +48,9 @@ class ResolutionState:
         if pawn_moved is None:
             string += "Initial state:\n"
         else:
-            string += f"Move pawn {GameWindow.get_color_name(pawn_moved)} with a cost of {self.cost}:\n"
+            string += (
+                f"Move pawn {get_color_name(pawn_moved)} with a cost of {self.cost}:\n"
+            )
         string += "\n".join(
             f"  Pawn {i}: ({pos.y}, {pos.x})" + (" <-" if i == pawn_moved else "")
             for i, pos in enumerate(self.pawns)
@@ -59,18 +59,24 @@ class ResolutionState:
         return string
 
 
+def get_color_name(color_code):
+    # Define color names for pawns
+    colors = ["red", "green", "blue", "yellow"]
+    return colors[color_code]
+
+
 class AIPlayer:
-    def __init__(self, runtime: "GameRuntime"):
+    def __init__(self, state: "GameState"):
         self.name = "AI"
-        self.runtime = runtime
-        self.visited_positions = [[coords] for coords in runtime.pawns]
+        self.state = state
+        self.visited_positions = [[coords] for coords in self.state.pawns]
 
     def compute_choices(
         self, state: "ResolutionState", target_pawn_id: Optional[int] = None
     ) -> List[Tuple[int, int, int]]:
         """
-        Compute all possible moves for the current runtime state.
-        :param state: The current state of the game.
+        Compute all possible moves for the current state.
+        :param state: The current state.
         :param target_pawn_id: If provided, only compute moves for this specific pawn.
         :return: A list of all possible moves in the format (pawn_id, target_y, target_x).
         """
@@ -97,24 +103,27 @@ class AIPlayer:
         :return: A list of moves in the format to reach the target. None if no solution is found. (pawn_id, target_y, target_x)
         """
         # Initialize queue and graph structure
-        queue = deque([ResolutionState(pawns=self.runtime.pawns, cost=0)])
+        queue = deque([ResolutionState(pawns=self.state.pawns, cost=0)])
         # Get the target pawn id
-        target_pawn_id = self.runtime.current_target[0]
+        target_pawn_id = self.state.current_target[0]
         # Whether we are using the target pawn or not
         using_target_pawn = True
         # List of explored final states
         explored_states = []
 
-        # Debug (TODO: Remove)
-        coords = self.runtime.board.get_chip_coordinates(*self.runtime.current_target)
+        # Debug
+        target_coords = self.get_chip_coordinates(*self.state.current_target)
+        pawn_coords = self.state.pawns[target_pawn_id]
         print(
             "Target:",
-            GameWindow.get_color_name(target_pawn_id),
-            GameWindow.get_shape(self.runtime.current_target[1]),
+            get_color_name(target_pawn_id),
+            get_shape(self.state.current_target[1]),
+            f"(at x={target_coords.x}, y={target_coords.y})",
+            get_color_name(target_pawn_id),
             "pawn",
-            f"(at x={coords.x}, y={coords.y})",
+            f"(at x={pawn_coords.x}, y={pawn_coords.y})",
         )
-        print(f"Starting search with {GameWindow.get_color_name(target_pawn_id)} pawn")
+        print(f"Starting search with {get_color_name(target_pawn_id)} pawn")
 
         while queue:
             current_state = queue.popleft()
@@ -162,8 +171,8 @@ class AIPlayer:
         """
         Check if the target pawn has reached the target position.
         """
-        target_pawn_id = self.runtime.current_target[0]
-        target = self.runtime.board.get_chip_coordinates(*self.runtime.current_target)
+        target_pawn_id = self.state.current_target[0]
+        target = self.get_chip_coordinates(*self.state.current_target)
         return pawns[target_pawn_id] == target
 
     def _get_pawn_destination(
@@ -175,16 +184,14 @@ class AIPlayer:
     ) -> Optional[Coordinate]:
         """
         Get the destination coordinates for a pawn based on its direction.
-        :param state: The current state of the game.
+        :param state: The current state.
         :param pawn_id: The id of the pawn.
         :param direction: The direction of the move (Direction enum).
         :param from_coords: A Coordinate to override the current position of the pawn used for mirror moves.
         :return: Target coordinates as a Coordinate or None if move is invalid.
         """
         pawn = state.pawns[pawn_id]
-        board = self.runtime.board
-
-        if not pawn or not board:
+        if not pawn:
             return None
 
         current_coord = from_coords if from_coords else pawn
@@ -199,16 +206,18 @@ class AIPlayer:
         dy, dx = direction_deltas[direction]
 
         # Check if there's a wall in the current cell blocking movement in the current direction
-        if board.walls[y][x][direction.value]:
+        if self.state.walls[y][x][direction.value]:
             return Coordinate(x=x, y=y)
 
         # Move the pawn in the current direction until it hits a wall, another pawn or is reflected by a mirror
-        while 0 <= y + dy < board.board_size and 0 <= x + dx < board.board_size:
+        while (
+            0 <= y + dy < self.state.board_size and 0 <= x + dx < self.state.board_size
+        ):
             y += dy
             x += dx
 
             # Check if the pawn is reflected by a mirror
-            mirror = board.mirrors[y][x]
+            mirror = self.state.mirrors[y][x]
             if mirror[0] is not None:
                 if pawn_id != mirror[0]:
                     continue
@@ -218,7 +227,7 @@ class AIPlayer:
                 )
 
             # Check if the pawn is blocked by a wall
-            if board.walls[y][x][direction.value]:
+            if self.state.walls[y][x][direction.value]:
                 return Coordinate(x=x, y=y)
 
             # Check if the pawn is blocked by another pawn
@@ -260,14 +269,48 @@ class AIPlayer:
             )
         return reflection_map[(direction, mirror_angle)]
 
+    def get_chip_coordinates(self, color: int, chip: int) -> Coordinate:
+        """
+        Get the coordinates of a chip on the board.
+        :param color: The color of the chip.
+        :param chip: The chip number.
+        :return: The coordinates of the chip. (y, x)
+        """
+        for y, row in enumerate(self.state.chips):
+            for x, (c, ch) in enumerate(row):
+                if c == color and ch == chip:
+                    return Coordinate(x=x, y=y)
+        raise ValueError(f"Chip {chip} of color {color} not found on the board.")
+
+
+def get_shape(shape_code):
+    # Define shape names
+    shapes = ["circle", "square", "triangle", "star"]
+    return shapes[shape_code]
+
 
 if __name__ == "__main__":
+    # Import GameRuntime for testing only
+    from game_runtime import GameRuntime
+
+    # Initialize GameRuntime
     runtime = GameRuntime()
     runtime.load_new_board()
-    while True:
-        try:
-            runtime.new_target()
-        except Exception:  # No more targets available
-            break
-        player = AIPlayer(runtime)
-        print("Result:", player.solve(), "\n")
+    runtime.new_target()
+
+    # Extract data from GameRuntime to create GameState
+    game_state = GameState(
+        board_size=runtime.board.board_size,
+        walls=runtime.board.walls,
+        mirrors=runtime.board.mirrors,
+        chips=runtime.board.chips,
+        pawns=runtime.pawns,
+        current_target=runtime.current_target,
+    )
+
+    # Initialize AIPlayer with GameState
+    player = AIPlayer(game_state)
+
+    # Solve the game
+    solution = player.solve()
+    print("Result:", solution, "\n")
