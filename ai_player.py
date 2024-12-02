@@ -4,7 +4,7 @@ from collections import deque
 
 from game_runtime import GameRuntime
 from game_window import GameWindow
-from types import Coordinate, Direction
+from utils import Coordinate, Direction
 
 
 @dataclass(frozen=True)

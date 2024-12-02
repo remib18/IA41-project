@@ -1,6 +1,6 @@
 from typing import List, Tuple, Union
 
-from types import Coordinate
+from utils import Coordinate
 
 
 class GameBoard:
