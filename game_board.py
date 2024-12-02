@@ -73,69 +73,104 @@ class GameBoard:
         center_end = center if is_even else center + 1
 
         # Add walls around the center zone
-        for i in range(center_start, center_end + 1):
-            for j in range(center_start, center_end + 1):
+        for row in range(center_start, center_end + 1):
+            for col in range(center_start, center_end + 1):
                 # Add walls if on the border of the center zone
-                if i == center_start:
+                if row == center_start:
                     # Add a north wall
-                    board[i][j] = (True, board[i][j][1], board[i][j][2], board[i][j][3])
+                    board[row][col] = (
+                        True,
+                        board[row][col][1],
+                        board[row][col][2],
+                        board[row][col][3],
+                    )
                     # Add a south wall to the above cell
-                    if i - 1 >= 0:
-                        board[i - 1][j] = (
-                            board[i - 1][j][0],
-                            board[i - 1][j][1],
+                    if row - 1 >= 0:
+                        board[row - 1][col] = (
+                            board[row - 1][col][0],
+                            board[row - 1][col][1],
                             True,
-                            board[i - 1][j][3],
+                            board[row - 1][col][3],
                         )
-                if i == center_end:
+                if row == center_end:
                     # Add a south wall
-                    board[i][j] = (board[i][j][0], board[i][j][1], True, board[i][j][3])
+                    board[row][col] = (
+                        board[row][col][0],
+                        board[row][col][1],
+                        True,
+                        board[row][col][3],
+                    )
                     # Add a north wall to the below cell
-                    if i + 1 < self.board_size:
-                        board[i + 1][j] = (
+                    if row + 1 < self.board_size:
+                        board[row + 1][col] = (
                             True,
-                            board[i + 1][j][1],
-                            board[i + 1][j][2],
-                            board[i + 1][j][3],
+                            board[row + 1][col][1],
+                            board[row + 1][col][2],
+                            board[row + 1][col][3],
                         )
-                if j == center_start:
+                if col == center_start:
                     # Add a west wall
-                    board[i][j] = (board[i][j][0], board[i][j][1], board[i][j][2], True)
+                    board[row][col] = (
+                        board[row][col][0],
+                        board[row][col][1],
+                        board[row][col][2],
+                        True,
+                    )
                     # Add an east wall to the left cell
-                    if j - 1 >= 0:
-                        board[i][j - 1] = (
-                            board[i][j - 1][0],
+                    if col - 1 >= 0:
+                        board[row][col - 1] = (
+                            board[row][col - 1][0],
                             True,
-                            board[i][j - 1][2],
-                            board[i][j - 1][3],
+                            board[row][col - 1][2],
+                            board[row][col - 1][3],
                         )
-                if j == center_end:
+                if col == center_end:
                     # Add an east wall
-                    board[i][j] = (board[i][j][0], True, board[i][j][2], board[i][j][3])
+                    board[row][col] = (
+                        board[row][col][0],
+                        True,
+                        board[row][col][2],
+                        board[row][col][3],
+                    )
                     # Add a west wall to the right cell
-                    if j + 1 < self.board_size:
-                        board[i][j + 1] = (
-                            board[i][j + 1][0],
-                            board[i][j + 1][1],
-                            board[i][j + 1][2],
+                    if col + 1 < self.board_size:
+                        board[row][col + 1] = (
+                            board[row][col + 1][0],
+                            board[row][col + 1][1],
+                            board[row][col + 1][2],
                             True,
                         )
 
         # Walls around the board
-        for i in range(self.board_size):
+        for row in range(self.board_size):
             end = self.board_size - 1
-            if i == 0:
+            if row == 0:
                 # Add a north wall
-                for j in range(self.board_size):
-                    board[i][j] = (True, board[i][j][1], board[i][j][2], board[i][j][3])
-            if i == end:
+                for col in range(self.board_size):
+                    board[row][col] = (
+                        True,
+                        board[row][col][1],
+                        board[row][col][2],
+                        board[row][col][3],
+                    )
+            if row == end:
                 # Add a south wall
-                for j in range(self.board_size):
-                    board[i][j] = (board[i][j][0], board[i][j][1], True, board[i][j][3])
+                for col in range(self.board_size):
+                    board[row][col] = (
+                        board[row][col][0],
+                        board[row][col][1],
+                        True,
+                        board[row][col][3],
+                    )
             # Add a west wall
-            board[i][0] = (board[i][0][0], board[i][0][1], board[i][0][2], True)
+            board[row][0] = (board[row][0][0], board[row][0][1], board[row][0][2], True)
             # Add an east wall
-            board[i][end] = (board[i][end][0], True, board[i][end][2], board[i][end][3])
+            board[row][end] = (
+                board[row][end][0],
+                True,
+                board[row][end][2],
+                board[row][end][3],
+            )
 
         # Generate a pre-defined board walls declaration => TODO: Generate random walls
         horizontal = [
@@ -182,22 +217,32 @@ class GameBoard:
         ]
 
         # Write the walls into the board
-        for i, j in horizontal:
-            board[i][j] = (board[i][j][0], board[i][j][1], True, board[i][j][3])
-            if i < self.board_size - 1:
-                board[i + 1][j] = (
+        for row, col in horizontal:
+            board[row][col] = (
+                board[row][col][0],
+                board[row][col][1],
+                True,
+                board[row][col][3],
+            )
+            if row < self.board_size - 1:
+                board[row + 1][col] = (
                     True,
-                    board[i + 1][j][1],
-                    board[i + 1][j][2],
-                    board[i + 1][j][3],
+                    board[row + 1][col][1],
+                    board[row + 1][col][2],
+                    board[row + 1][col][3],
                 )
-        for i, j in vertical:
-            board[i][j] = (board[i][j][0], True, board[i][j][2], board[i][j][3])
-            if j < self.board_size - 1:
-                board[i][j + 1] = (
-                    board[i][j + 1][0],
-                    board[i][j + 1][1],
-                    board[i][j + 1][2],
+        for row, col in vertical:
+            board[row][col] = (
+                board[row][col][0],
+                True,
+                board[row][col][2],
+                board[row][col][3],
+            )
+            if col < self.board_size - 1:
+                board[row][col + 1] = (
+                    board[row][col + 1][0],
+                    board[row][col + 1][1],
+                    board[row][col + 1][2],
                     True,
                 )
 
