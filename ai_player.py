@@ -17,7 +17,7 @@ class ResolutionState:
     def get_move_sequence(self) -> List[Tuple[Color, Coordinate]]:
         """
         Reconstruct the sequence of moves from the state chain.
-        :return: A list of moves in the format (pawn_id, target_x, target_y).
+        :return: A list of moves in the format.
         """
         moves = []
         current = self
@@ -82,7 +82,7 @@ class AIPlayer:
         Compute all possible moves for the current state.
         :param state: The current state.
         :param target_pawn_color: If provided, only compute moves for this specific pawn.
-        :return: A list of all possible moves in the format (pawn_id, target_x, target_y).
+        :return: A list of all possible moves in the format.
         """
         possible_moves: List[Tuple[Color, Coordinate]] = []
         pawn_colors = (
@@ -95,7 +95,7 @@ class AIPlayer:
             for direction in Direction:
                 target_coords = self._get_pawn_destination(state, pawn_color, direction)
 
-                # Cond: target_coords != None AND (target_pawn_id != None => target_coords not in visited_positions[pawn_id])
+                # Cond: target_coords != None AND (target_pawn_color != None => target_coords not in visited_positions[pawn_color])
                 if target_coords is not None and (
                     target_pawn_color is None
                     or target_coords not in self.visited_positions[pawn_color.value]
@@ -106,11 +106,11 @@ class AIPlayer:
     def solve(self) -> Optional[List[Tuple[Color, Coordinate]]]:
         """
         Find a solution using a basic breadth-first search.
-        :return: A list of moves in the format to reach the target. None if no solution is found. (pawn_id, target_x, target_y)
+        :return: A list of moves in the format to reach the target. None if no solution is found.
         """
         # Initialize queue and graph structure
         queue = deque([ResolutionState(pawns=self.state.pawns, cost=0)])
-        # Get the target pawn id
+        # Get the target pawn color
         target_pawn_color = self.state.current_target[0]
         # Whether we are using the target pawn or not
         using_target_pawn = True
@@ -189,7 +189,7 @@ class AIPlayer:
         """
         Get the destination coordinates for a pawn based on its direction.
         :param state: The current state.
-        :param pawn_color: The id of the pawn.
+        :param pawn_color: The color of the pawn.
         :param direction: The direction of the move (Direction enum).
         :param from_coords: A Coordinate to override the current position of the pawn used for mirror moves.
         :return: Target coordinates as a Coordinate or None if move is invalid.
