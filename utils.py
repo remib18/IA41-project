@@ -52,7 +52,8 @@ class GameState:
 
     pawns: List[Coordinate]
     """
-    A list of coordinates representing the pawns in the game
+    A list of coordinates representing the pawns in the game.
+    The list must be ordered by the color of the pawns in the following order: red, green, blue, yellow.
     Exemple:
     ```py
     [
