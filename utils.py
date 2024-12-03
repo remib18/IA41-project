@@ -35,7 +35,7 @@ class GameState:
     mirrors: List[List[Tuple[Optional[int], Optional[int]]]]
     """
     A grid representing each cell of the game board. Each cell has a tuple of 2 integers representing the mirrors.
-    The grid must have the size of `board_size` x `board_size` and a cell in the grid must be accessible by `walls[x][y]`.
+    The grid must have the size of `board_size` x `board_size` and a cell in the grid must be accessible by `mirrors[x][y]`.
     The first integer represents the mirror color (0: red, 1: green, 2: blue, 3: yellow).
     The second integer represents the mirror angle(45: \, 135: /).
     If the cell has no mirror, the tuple is (None, None).
@@ -44,7 +44,7 @@ class GameState:
     chips: List[List[Tuple[Optional[int], Optional[int]]]]
     """
     A grid representing each cell of the game board. Each cell has a tuple of 2 integers representing the chips.
-    The grid must have the size of `board_size` x `board_size` and a cell in the grid must be accessible by `walls[x][y]`.
+    The grid must have the size of `board_size` x `board_size` and a cell in the grid must be accessible by `chips[x][y]`.
     The first integer represents the chip color (0: red, 1: green, 2: blue, 3: yellow).
     The second integer represents the chip shape (0: circle, 1: square, 2: triangle, 3: star).
     If the cell has no chip, the tuple is (None, None).
