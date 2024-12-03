@@ -1,6 +1,6 @@
-from typing import List, Tuple, Union
+from typing import List, Tuple, Optional
 
-from utils import Coordinate
+from utils import Coordinate, Color, Shape, MirrorAngle
 
 
 class GameBoard:
@@ -31,27 +31,14 @@ class GameBoard:
         self.number_of_chips = number_of_chips
         self.number_of_mirrors = number_of_mirrors
         self.walls: List[List[Tuple[bool, bool, bool, bool]]] = []
-        self.chips: List[List[Tuple[Union[int, None], Union[int, None]]]] = []
-        self.mirrors: List[List[Tuple[Union[int, None], Union[int, None]]]] = []
+        self.chips: List[List[Tuple[Optional[Color], Optional[Shape]]]] = []
+        self.mirrors: List[List[Tuple[Optional[Color], Optional[MirrorAngle]]]] = []
 
         # Generate the walls, chips and mirrors for the board
         self.walls = self.generate_walls()
         self.chips = self.generate_chips()
         self.mirrors = self.generate_mirrors()
         self.initial_pawns_position = self.set_initial_pawns_position()
-
-    def get_chip_coordinates(self, color: int, chip: int) -> Coordinate:
-        """
-        Get the coordinates of a chip on the board.
-        :param color: The color of the chip.
-        :param chip: The chip number.
-        :return: The coordinates of the chip. (y, x)
-        """
-        for y, row in enumerate(self.chips):
-            for x, (c, ch) in enumerate(row):
-                if c == color and ch == chip:
-                    return Coordinate(x=x, y=y)
-        raise ValueError(f"Chip {chip} of color {color} not found on the board.")
 
     def generate_walls(self) -> List[List[Tuple[bool, bool, bool, bool]]]:
         """
@@ -248,7 +235,7 @@ class GameBoard:
 
         return board
 
-    def generate_chips(self) -> List[List[Tuple[Union[int, None], Union[int, None]]]]:
+    def generate_chips(self) -> List[List[Tuple[Optional[Color], Optional[Shape]]]]:
         """
         Generate the chips for a board based on the given parameters.
 
@@ -269,11 +256,13 @@ class GameBoard:
         ]
         for color, chips_of_color in enumerate(chips_positions):
             for chip, (y, x) in enumerate(chips_of_color):
-                board[y][x] = (color, chip)
+                board[y][x] = (Color(color), Shape(chip))
 
         return board
 
-    def generate_mirrors(self) -> List[List[Tuple[Union[int, None], Union[int, None]]]]:
+    def generate_mirrors(
+        self,
+    ) -> List[List[Tuple[Optional[Color], Optional[MirrorAngle]]]]:
         """
         Generate the mirrors for a board based on the given parameters.
 
@@ -302,7 +291,7 @@ class GameBoard:
         ]
         for color, mirrors_of_color in enumerate(mirrors_positions):
             for _chip, (y, x, angle) in enumerate(mirrors_of_color):
-                board[y][x] = (color, angle)
+                board[y][x] = (Color(color), MirrorAngle(angle))
 
         return board
 
@@ -367,63 +356,6 @@ class GameBoard:
         return seed_string
 
     @staticmethod
-    def from_seed(seed: str) -> "GameBoard":
-        """
-        Generate a board from a given seed.
-        :param seed: The seed to generate the board from.
-        :return: A board object.
-        """
-        # Split the seed into its components
-        parts = seed.split("|")
-        main_parts = parts[0].split("-")
-
-        board_size = int(main_parts[0], 16)
-        number_of_colors = int(main_parts[1], 16)
-        number_of_chips = int(main_parts[2], 16)
-        number_of_mirrors = int(main_parts[3], 16)
-
-        # Deserialize walls, chips, mirrors, and pawns
-        walls = [
-            [(False, False, False, False) for _ in range(board_size)]
-            for _ in range(board_size)
-        ]
-        for wall_entry in parts[1].split(";"):
-            if wall_entry:
-                i, j, wall = map(int, wall_entry.split(","))
-                walls[i][j] = tuple(
-                    True if w == wall else walls[i][j][w] for w in range(4)
-                )
-
-        chips = [[(None, None) for _ in range(board_size)] for _ in range(board_size)]
-        for chip_entry in parts[2].split(";"):
-            if chip_entry:
-                i, j, color, chip = map(int, chip_entry.split(","))
-                chips[i][j] = (color, chip)
-
-        mirrors = [[(None, None) for _ in range(board_size)] for _ in range(board_size)]
-        for mirror_entry in parts[3].split(";"):
-            if mirror_entry:
-                i, j, color, angle = map(int, mirror_entry.split(","))
-                mirrors[i][j] = (color, angle)
-
-        initial_pawns_position = []
-        for pawn_entry in parts[4].split(";"):
-            if pawn_entry:
-                y, x = map(int, pawn_entry.split(","))
-                initial_pawns_position.append(Coordinate(x=x, y=y))
-
-        return GameBoard(
-            board_size=board_size,
-            number_of_colors=number_of_colors,
-            number_of_chips=number_of_chips,
-            number_of_mirrors=number_of_mirrors,
-            walls=walls,
-            chips=chips,
-            mirrors=mirrors,
-            initial_pawns_position=initial_pawns_position,
-        )
-
-    @staticmethod
     def get_random():
         """
         Generate a random board.
@@ -436,14 +368,3 @@ class GameBoard:
 if __name__ == "__main__":
     # Create a board
     board = GameBoard()
-
-    # Get the seed for the board
-    seed = board.get_seed()
-    print(f"Seed: {seed}")
-
-    # Create a new board from the seed
-    new_board = GameBoard.from_seed(seed)
-
-    # Check if the new board is the same as the original one
-    assert new_board.get_seed() == seed
-    print("The board was successfully generated from the seed.")

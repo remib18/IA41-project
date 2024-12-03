@@ -18,6 +18,34 @@ class Coordinate:
         return f"({self.x}, {self.y})"
 
 
+class Color(Enum):
+    RED = 0
+    GREEN = 1
+    BLUE = 2
+    YELLOW = 3
+
+    def __str__(self):
+        return self.name.lower()
+
+
+class Shape(Enum):
+    CIRCLE = 0
+    SQUARE = 1
+    TRIANGLE = 2
+    STAR = 3
+
+    def __str__(self):
+        return self.name.lower()
+
+
+class MirrorAngle(Enum):
+    BACKSLASH = 45
+    SLASH = 135
+
+    def __str__(self):
+        return self.name.lower()
+
+
 @dataclass
 class GameState:
     board_size: int
@@ -32,21 +60,17 @@ class GameState:
     The grid must have the size of `board_size` x `board_size` and a cell in the grid must be accessible by `walls[x][y]`.
     """
 
-    mirrors: List[List[Tuple[Optional[int], Optional[int]]]]
+    mirrors: List[List[Tuple[Optional[Color], Optional[MirrorAngle]]]]
     """
-    A grid representing each cell of the game board. Each cell has a tuple of 2 integers representing the mirrors.
+    A grid representing each cell of the game board.
     The grid must have the size of `board_size` x `board_size` and a cell in the grid must be accessible by `mirrors[x][y]`.
-    The first integer represents the mirror color (0: red, 1: green, 2: blue, 3: yellow).
-    The second integer represents the mirror angle(45: \, 135: /).
     If the cell has no mirror, the tuple is (None, None).
     """
 
-    chips: List[List[Tuple[Optional[int], Optional[int]]]]
+    chips: List[List[Tuple[Optional[Color], Optional[Shape]]]]
     """
-    A grid representing each cell of the game board. Each cell has a tuple of 2 integers representing the chips.
+    A grid representing each cell of the game board.
     The grid must have the size of `board_size` x `board_size` and a cell in the grid must be accessible by `chips[x][y]`.
-    The first integer represents the chip color (0: red, 1: green, 2: blue, 3: yellow).
-    The second integer represents the chip shape (0: circle, 1: square, 2: triangle, 3: star).
     If the cell has no chip, the tuple is (None, None).
     """
 
@@ -65,11 +89,9 @@ class GameState:
     ```
     """
 
-    current_target: Tuple[int, int]
+    current_target: Tuple[Color, Shape]
     """
-    The current target of the game. The target is a tuple of 2 integers representing the target color and shape.
-    The first integer represents the target color (0: red, 1: green, 2: blue, 3: yellow).
-    The second integer represents the target shape (0: circle, 1: square, 2: triangle, 3: star).
+    The current target of the game.
     """
 
 
