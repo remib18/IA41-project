@@ -4,6 +4,8 @@ This project serves as an introduction to AI game-solving techniques. It represe
 
 We selected *Rasende Roboter* for its challenging gameplay mechanics, particularly the strategic movement of multiple pawns required to solve each challenge.
 
+See [the final implementation](https://github.com/remib18/RasendeRoboter).
+
 ## Project Overview
 
 ### Current Features
